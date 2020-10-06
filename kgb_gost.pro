@@ -1,5 +1,5 @@
-QT -= gui
-QMAKE_CXXFLAGS += -std=c++17
+CONFIG += console
+CONFIG += c++1z c++14
 CONFIG += console
 CONFIG -= app_bundle
 

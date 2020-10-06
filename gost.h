@@ -42,6 +42,18 @@ private:
 
     std::queue<std::pair<std::uint32_t,std::uint32_t>> *buffQueue; //buffer. First - lower, Second - Higher
 
+    template <typename T> //Циклический сдвиг влево
+    inline T rotl(T x, size_t sk)
+    {
+        return (x << sk) | (x >> (sizeof(T) * 8 - sk));
+    }
+
+    template <typename T> //Циклический сдвиг вправо
+    inline T rotr(T x, size_t sk)
+    {
+        return (x >> sk) | (x << (sizeof(T) * 8 - sk));
+    }
+
     void reading();
     void crypt();
 

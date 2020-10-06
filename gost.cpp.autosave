@@ -65,7 +65,9 @@ void gost::crypt()
             tmpBuffer[i] = (static_cast<std::uint16_t>((table[2 * i][byteBuffer[i] >> 4])) << 8) | (static_cast<std::uint16_t>(table[2 * i + 1][byteBuffer[i] & 0x0F]));
             tmpBuffer[i] = rotl(tmpBuffer[i], 11);
         }
-
+        
+        
+        
         if(buffQueue->empty() && complete)
             return;
     }
