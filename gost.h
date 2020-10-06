@@ -17,6 +17,7 @@ class gost
 {
 public:
     gost();
+    ~gost();
     //Инициализация ключа из файла
     void set_key(std::string filepath);
     //Начало шифрования
@@ -51,7 +52,7 @@ private:
     std::string inputFile;
 
     //Выходной файловый поток
-    std::fstream output;
+    std::ofstream output;
 
     //Мбютекс буффера
     std::mutex queueMutex;

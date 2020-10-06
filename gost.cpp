@@ -37,19 +37,23 @@ std::uint32_t gost::concat(byte a, byte b, byte c, byte d)
 void gost::start(std::string inputFile)
 {
 
-//    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
-//    this->inputFile = inputFile;
-//    output.open(inputFile + "kgb", std::ios_base::binary);
-//    std::thread([this](){reading();}).detach();
-//    std::thread([this](){crypt();}).join();
-//    delete buffQueue;
+//    ОСНОВНОЙ ЦИКЛ
+
+    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
+    this->inputFile = inputFile;
+    output.open("gost.kgb", std::ios_base::binary);
+    std::thread([this](){reading();}).detach();
+    std::thread([this](){crypt();}).join();
+    delete buffQueue;
 
 //ДЛЯ ТЕСТА НА ОДНОМ БЛОКЕ ДАННЫХ
 
-    std::uint32_t a = 0x21043b04, b = 0x30043204;
-    std::size_t x = 0;
-    auto r = oneStepCrypto(std::make_pair(a,b),x);
-    std::cout << std::hex << r.first << r.second << std::endl;
+//    std::uint32_t a = 0x21043b04, b = 0x30043204;
+//    auto r = std::make_pair(a,b);
+
+//    for (size_t x = 0; x < 32;)
+//        r = oneStepCrypto(r, x);
+//    std::cout << std::hex << r.first << r.second << std::endl;
 }
 
 void gost::crypt()
@@ -65,10 +69,12 @@ void gost::crypt()
         auto x = buffQueue->front();
         buffQueue->pop();
 
+
         chank = x;
 
         for (round = 0; round < 32;)
            chank = oneStepCrypto(chank, round);
+
 
         write(chank);
 
@@ -119,9 +125,12 @@ void gost::write(std::pair<std::uint32_t, std::uint32_t> x)
     unsigned char *arr = reinterpret_cast<unsigned char*>(&x.first);
     for (size_t i = 0; i < 4; i++)
         output << arr[i];
+
     arr = reinterpret_cast<unsigned char*>(&x.second);
+
     for (size_t i = 0; i < 4; i++)
-        output >> arr[i];
+        output << arr[i];
+
 }
 
 std::pair<std::uint32_t, std::uint32_t> gost::oneStepCrypto(std::pair<std::uint32_t, std::uint32_t> buf, size_t &round)
@@ -132,7 +141,7 @@ std::pair<std::uint32_t, std::uint32_t> gost::oneStepCrypto(std::pair<std::uint3
 
     lower = buf.first;
     high = buf.second;
-    lower += (round < 24? key[round++ % 8] : key[32 - (round++ - 1)]);
+    lower += (round < 24 ? key[round % 8] : key[31 - round]);
 
     byteBuffer = reinterpret_cast<unsigned char*>(&lower);
 
@@ -142,6 +151,12 @@ std::pair<std::uint32_t, std::uint32_t> gost::oneStepCrypto(std::pair<std::uint3
 
 
     lower = rol(lower,11);
-
+    round++;
     return std::make_pair(lower, buf.first);
+}
+
+gost::~gost()
+{
+    if (output.is_open())
+        output.close();
 }
