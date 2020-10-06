@@ -22,7 +22,7 @@ public:
     void set_key(std::string filepath);
     //Начало шифрования
     //TODO: проверить, инициироан ли путь!
-    void start(std::string inputFile);
+    void start(std::string inputFile, std::string outputFile);
 
 private:
 

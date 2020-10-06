@@ -34,14 +34,14 @@ std::uint32_t gost::concat(byte a, byte b, byte c, byte d)
     return result;
 }
 
-void gost::start(std::string inputFile)
+void gost::start(std::string inputFile, std::string outputFile)
 {
 
 //    ОСНОВНОЙ ЦИКЛ
 
     buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
     this->inputFile = inputFile;
-    output.open("gost.kgb", std::ios_base::binary);
+    output.open(outputFile, std::ios_base::binary);
     std::thread([this](){reading();}).detach();
     std::thread([this](){crypt();}).join();
     delete buffQueue;
@@ -130,6 +130,7 @@ void gost::write(std::pair<std::uint32_t, std::uint32_t> x)
 
     for (size_t i = 0; i < 4; i++)
         output << arr[i];
+
 
 }
 
