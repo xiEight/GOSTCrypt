@@ -36,35 +36,41 @@ std::uint32_t gost::concat(byte a, byte b, byte c, byte d)
 
 void gost::start(std::string inputFile)
 {
-    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
-    this->inputFile = inputFile;
-    std::thread([this](){reading();}).detach();
-    std::thread([this](){crypt();}).join();
-    delete buffQueue;
+
+//    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
+//    this->inputFile = inputFile;
+//    output.open(inputFile + "kgb", std::ios_base::binary);
+//    std::thread([this](){reading();}).detach();
+//    std::thread([this](){crypt();}).join();
+//    delete buffQueue;
+
+//ДЛЯ ТЕСТА НА ОДНОМ БЛОКЕ ДАННЫХ
+
+    std::uint32_t a = 0x21043b04, b = 0x30043204;
+    std::size_t x = 0;
+    auto r = oneStepCrypto(std::make_pair(a,b),x);
+    std::cout << std::hex << r.first << r.second << std::endl;
 }
 
 void gost::crypt()
 {
     size_t round = 0;
-    std::uint32_t lower, high; //Оптимизировать
-    unsigned char* byteBuffer;
-    std::uint8_t tmpBuffer[4];
+
+    std::pair<std::uint32_t, std::uint32_t> chank;
+
     while(true)
     {
         std::unique_lock<std::mutex> lk(queueMutex);
         cv.wait(lk,[this](){return !buffQueue->empty();});
         auto x = buffQueue->front();
         buffQueue->pop();
-        lower = x.first;
-        high = x.second;
-        lower ^= key[round];
-        byteBuffer = reinterpret_cast<unsigned char*>(&lower);
 
-        for (size_t i = 0; i < 4; i++)
-        {
-            tmpBuffer[i] = (static_cast<std::uint16_t>((table[2 * i][byteBuffer[i] >> 4])) << 8) | (static_cast<std::uint16_t>(table[2 * i + 1][byteBuffer[i] & 0x0F]));
-            tmpBuffer[i] = rotl(tmpBuffer[i], 11);
-        }
+        chank = x;
+
+        for (round = 0; round < 32;)
+           chank = oneStepCrypto(chank, round);
+
+        write(chank);
 
         if(buffQueue->empty() && complete)
             return;
@@ -106,4 +112,36 @@ std::uint32_t gost::concat(std::uint8_t arr[4])
     for (size_t i = 0; i < 4; i++)
         result |= (static_cast<std::uint32_t>(arr[i]) << (8 * (3 - i)));
     return result;
+}
+
+void gost::write(std::pair<std::uint32_t, std::uint32_t> x)
+{
+    unsigned char *arr = reinterpret_cast<unsigned char*>(&x.first);
+    for (size_t i = 0; i < 4; i++)
+        output << arr[i];
+    arr = reinterpret_cast<unsigned char*>(&x.second);
+    for (size_t i = 0; i < 4; i++)
+        output >> arr[i];
+}
+
+std::pair<std::uint32_t, std::uint32_t> gost::oneStepCrypto(std::pair<std::uint32_t, std::uint32_t> buf, size_t &round)
+{
+    std::uint32_t lower, high; //Блок входных данных, разбитых на две половины
+
+    unsigned char* byteBuffer;//Указатель для табля побайтовой работы с таблицой
+
+    lower = buf.first;
+    high = buf.second;
+    lower += (round < 24? key[round++ % 8] : key[32 - (round++ - 1)]);
+
+    byteBuffer = reinterpret_cast<unsigned char*>(&lower);
+
+    //ЗАМЕНА ПО ТАБЛИЦЕ
+    for (size_t i = 0; i < 4; i++)
+        byteBuffer[i] = (static_cast<std::uint16_t>((table[2 * i][byteBuffer[i] >> 4])) << 4) | (static_cast<std::uint16_t>(table[2 * i + 1][byteBuffer[i] & 0x0F]));
+
+
+    lower = rol(lower,11);
+
+    return std::make_pair(lower, buf.first);
 }
