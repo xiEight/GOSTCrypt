@@ -33,7 +33,7 @@ private:
                         {1,15,13,0,5,7,10,4,9,2,3,14,6,11,8,12}};
     std::uint32_t key[8];
     std::uint32_t concat(byte a, byte b, byte c, byte d);
-    std::uint32_t concat(std::uint32_t arr[4]);
+    std::uint32_t concat(std::uint8_t arr[4]);
 
     std::string inputFile;
 

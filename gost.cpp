@@ -48,10 +48,9 @@ void gost::crypt()
     size_t round = 0;
     std::uint32_t lower, high; //Оптимизировать
     unsigned char* byteBuffer;
-    std::vector<unsigned char> lowerBuff;
+    std::uint8_t tmpBuffer[4];
     while(true)
     {
-        lowerBuff.clear();
         std::unique_lock<std::mutex> lk(queueMutex);
         cv.wait(lk,[this](){return !buffQueue->empty();});
         auto x = buffQueue->front();
@@ -63,8 +62,8 @@ void gost::crypt()
 
         for (size_t i = 0; i < 4; i++)
         {
-            lowerBuff.push_back(table[2*i][byteBuffer[i] >> 4]);
-            lowerBuff.push_back(table[2*i + 1][byteBuffer[i] & 0x0F]);
+            tmpBuffer[i] = (static_cast<std::uint16_t>((table[2 * i][byteBuffer[i] >> 4])) << 8) | (static_cast<std::uint16_t>(table[2 * i + 1][byteBuffer[i] & 0x0F]));
+            tmpBuffer[i] = std::rotl(tmpBuffer[i], 11);
         }
 
         if(buffQueue->empty() && complete)
@@ -75,7 +74,8 @@ void gost::crypt()
 void gost::reading()
 {
     std::ifstream file(this->inputFile, std::ios_base::binary);
-    std::uint32_t buf[4], lower,higher;
+    std::uint8_t buf[4];
+    std::uint32_t lower,higher;
     while(!complete)
     {
         for (size_t i = 0; i < 4; i++)
@@ -100,7 +100,7 @@ void gost::reading()
     }
 }
 
-std::uint32_t gost::concat(std::uint32_t arr[4])
+std::uint32_t gost::concat(std::uint8_t arr[4])
 {
     std::uint32_t result = 0x00000000;
     for (size_t i = 0; i < 4; i++)

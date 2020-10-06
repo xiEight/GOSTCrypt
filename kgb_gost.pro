@@ -1,6 +1,6 @@
 QT -= gui
-
-CONFIG += c++2a c++1z c++14 console
+QMAKE_CXXFLAGS += -std=c++17
+CONFIG += console
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
