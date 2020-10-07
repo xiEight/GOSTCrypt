@@ -1,5 +1,6 @@
 #include "gost.h"
 
+
 gost::gost()
 {
 
@@ -34,26 +35,33 @@ std::uint32_t gost::concat(byte a, byte b, byte c, byte d)
     return result;
 }
 
-void gost::start(std::string inputFile, std::string outputFile)
+void gost::start(std::string inputFile, std::string outputFile, ushort mode)
 {
 
 //    ОСНОВНОЙ ЦИКЛ
 
-    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
-    this->inputFile = inputFile;
-    output.open(outputFile, std::ios_base::binary);
-    std::thread([this](){reading();}).detach();
-    std::thread([this](){crypt();}).join();
-    delete buffQueue;
+//    buffQueue = new std::queue<std::pair<std::uint32_t,std::uint32_t>>;
+//    this->inputFile = inputFile;
+//    this->mode = mode;
+//    output.open(outputFile, std::ios_base::binary);
+//    std::thread([this](){reading();}).detach();
+//    std::thread([this](){crypt();}).join();
+//    delete buffQueue;
 
 //ДЛЯ ТЕСТА НА ОДНОМ БЛОКЕ ДАННЫХ
 
-//    std::uint32_t a = 0x21043b04, b = 0x30043204;
-//    auto r = std::make_pair(a,b);
+    //69e6442d
+    //2b2f6753
 
-//    for (size_t x = 0; x < 32;)
-//        r = oneStepCrypto(r, x);
-//    std::cout << std::hex << r.first << r.second << std::endl;
+    this->mode = 0;
+    //std::uint32_t a = 0xa709e291, b = 0x04cba6b5;
+    //std::uint32_t a = 0xa92501d3, b = 0x66274d55;
+    std::uint32_t a = 0x21043b04, b = 0x30043204;
+    auto r = std::make_pair(a,b);
+
+    for (size_t x = 0; x < 32;)
+        r = oneStepCrypto(r, x);
+    std::cout << std::hex << r.first << "\n" << r.second << std::endl;
 }
 
 void gost::crypt()
@@ -142,18 +150,26 @@ std::pair<std::uint32_t, std::uint32_t> gost::oneStepCrypto(std::pair<std::uint3
 
     lower = buf.first;
     high = buf.second;
-    lower += (round < 24 ? key[round % 8] : key[31 - round]);
+
+    if (this->mode == SIMPLECRYPT)
+        lower = (lower +  (round < 24 ? key[round % 8] : key[31 - round])) % 4294967296;
+    else if (this->mode == SIMPLEENCRYPT)
+        lower = (lower +  (round < 8? key[round] : key[7 - (round - 8) % 8])) % 4294967296;
+
+
 
     byteBuffer = reinterpret_cast<unsigned char*>(&lower);
 
     //ЗАМЕНА ПО ТАБЛИЦЕ
-    for (size_t i = 0; i < 4; i++)
-        byteBuffer[i] = (static_cast<std::uint16_t>((table[2 * i][byteBuffer[i] >> 4])) << 4) | (static_cast<std::uint16_t>(table[2 * i + 1][byteBuffer[i] & 0x0F]));
+    for (short i = 3, n = 7; i >= 0; i--, n -= 2)
+        byteBuffer[i] = (((table[n][byteBuffer[i] >> 4]) << 4) | table[n - 1][(byteBuffer[i] & 0x0F)]);
 
 
     lower = rol(lower,11);
+   // lower = (lower << 11) | (lower >> 21);
+    lower = high ^ lower;
     round++;
-    return std::make_pair(lower, buf.first);
+    return (round != 31 ? std::make_pair(lower, buf.first): std::make_pair(buf.first, lower));
 }
 
 gost::~gost()

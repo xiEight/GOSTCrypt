@@ -12,6 +12,11 @@
 #include <condition_variable>
 #include <vector>
 #include <bitset>
+#include <cmath>
+
+#define SIMPLECRYPT 0
+#define SIMPLEENCRYPT 1
+
 
 class gost
 {
@@ -22,7 +27,7 @@ public:
     void set_key(std::string filepath);
     //Начало шифрования
     //TODO: проверить, инициироан ли путь!
-    void start(std::string inputFile, std::string outputFile);
+    void start(std::string inputFile, std::string outputFile, ushort mode = SIMPLECRYPT);
 
 private:
 
@@ -30,7 +35,7 @@ private:
     using byte = std::uint8_t;
 
     //Таблица замены
-    int table[8][16] = {{4,10,9,2,13,8,0,14,6,11,1,12,7,15,5,3}, //Таблица S
+    std::uint8_t table[8][16] = {{4,10,9,2,13,8,0,14,6,11,1,12,7,15,5,3}, //Таблица S
                         {14,11,4,12,6,13,15,10,2,3,8,1,0,7,5,9},
                         {5,8,1,13,10,3,4,2,14,15,12,7,6,0,9,11},
                         {7,13,10,1,0,8,9,15,14,4,6,12,11,2,5,3},
@@ -41,7 +46,6 @@ private:
 
     //256 битовый ключ шифрования, разбитый на блоки по 32 бита
     std::uint32_t key[8];
-
 
     std::uint32_t concat(byte a, byte b, byte c, byte d);
 
@@ -79,6 +83,8 @@ private:
 
 
     std::pair<std::uint32_t, std::uint32_t> oneStepCrypto(std::pair<std::uint32_t, std::uint32_t> buf, size_t &round);
+
+    unsigned short mode;
 };
 
 #endif // GOST_H
